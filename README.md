@@ -58,6 +58,31 @@ The algorithm has three phases. Phase 1 is only needed when the subscription
 uses a subtree filter; XPath subscriptions skip directly to Phase 2. Phase 2
 runs once at subscription creation time. Phase 3 runs for every notification.
 
+```
+  +-------------------+       +--------------+
+  | Subtree Filter    |------>| Phase 1:     |---> Normalized XPath(s)
+  | (if applicable)   |       | Normalize    |     (full-prefix style)
+  +-------------------+       +--------------+           |
+                                                         v
+  +-------------------+       +--------------+     +---------------+
+  | Subscription Path |------>|              |     | Key Templates |
+  | (XPath, possibly  |       |  Phase 2:    |---->| (minimal-     |
+  |  from Phase 1)    |       |  Schema      |     |  prefix, %s)  |
+  +-------------------+       |  Resolution  |     +---------------+
+  | YANG Schema Tree  |------>|              |     | Extraction    |
+  +-------------------+       +--------------+     | Specs[]       |
+                                                   +-------+-------+
+                                                           |
+                                                           v
+  +-------------------+       +--------------+     +-----------------+
+  | Parsed Data Tree  |------>|              |     | Kafka Key       |
+  +-------------------+       |  Phase 3:    |---->| device/sub-id   |
+  | Device Name       |------>|  Data Walk   |     | /concrete-keys  |
+  | Subscription ID   |------>|              |     +-----------------+
+  +-------------------+       +--------------+
+```
+
+
 ### Phase 1: Subtree Filter Normalization
 
 **Implementation:** [`src/phase1.rs`](src/phase1.rs) — `normalize_subtree()`
