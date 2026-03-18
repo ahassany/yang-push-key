@@ -1,0 +1,1 @@
+<filter><interfaces xmlns="urn:ietf:params:xml:ns:yang:ietf-interfaces"><interface><name>eth0</name><mtu/></interface></interfaces><system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><clock/></system></filter>

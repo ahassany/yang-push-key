@@ -1,0 +1,16 @@
+module example-acl {
+  namespace "urn:example:acl";
+  prefix acl;
+  container access-lists {
+    list access-list {
+      key "name type";
+      leaf name { type string; }
+      leaf type { type string; }
+      list access-list-entry {
+        key "sequence-id";
+        leaf sequence-id { type uint32; }
+        leaf action       { type string; }
+      }
+    }
+  }
+}

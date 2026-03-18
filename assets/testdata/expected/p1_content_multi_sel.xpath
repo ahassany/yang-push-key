@@ -1,0 +1,1 @@
+/ietf-interfaces:interfaces/ietf-interfaces:interface[ietf-interfaces:name='eth0']/ietf-interfaces:oper-status | /ietf-interfaces:interfaces/ietf-interfaces:interface[ietf-interfaces:name='eth0']/ietf-interfaces:mtu

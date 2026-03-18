@@ -1,0 +1,1 @@
+/example-acl:access-lists/access-list[name='fw-in'][type='ipv4']/access-list-entry[sequence-id='%s']

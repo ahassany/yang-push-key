@@ -1,0 +1,15 @@
+module example-network {
+  namespace "urn:example:network";
+  prefix ni;
+  container network-instances {
+    list network-instance {
+      key "name";
+      leaf name { type string; }
+      list interface {
+        key "id";
+        leaf id     { type string; }
+        leaf status { type string; }
+      }
+    }
+  }
+}

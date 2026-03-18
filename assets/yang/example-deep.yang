@@ -1,0 +1,19 @@
+module example-deep {
+  namespace "urn:example:deep";
+  prefix deep;
+  container root {
+    list level1 {
+      key "l1-key";
+      leaf l1-key { type string; }
+      list level2 {
+        key "l2-key";
+        leaf l2-key { type string; }
+        list level3 {
+          key "l3-key";
+          leaf l3-key { type string; }
+          leaf data   { type string; }
+        }
+      }
+    }
+  }
+}

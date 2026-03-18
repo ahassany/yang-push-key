@@ -1,0 +1,24 @@
+[package]
+name = "yang-push-key"
+version = "0.1.0"
+edition = "2024"
+authors = ["Ahmed Elhassany <a.hassany@gmail.com>"]
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/ahassany/yang-push-key"
+homepage = "https://github.com/ahassany/yang-push-key"
+description = """
+Derives unique Apache Kafka message keys from YANG Push on-change
+notifications (RFC 8641).  Three phases: (1) subtree filter → XPath,
+(2) XPath + schema → key template, (3) data tree → Kafka key.
+"""
+
+[dependencies]
+yang4 = { version = "0.1.0", features = ["bundled"] }
+quick-xml = "0.39"
+clap = { version = "4.6", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+yang4 = { version = "0.1.0", features = ["bundled"] }

@@ -1,0 +1,11 @@
+module example-vlans {
+  namespace "urn:example:vlans";
+  prefix vlan;
+  container vlans {
+    list vlan {
+      key "vlan-id";
+      leaf vlan-id { type uint16; }
+      leaf name    { type string; }
+    }
+  }
+}

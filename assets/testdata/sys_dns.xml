@@ -1,0 +1,1 @@
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><dns><search-domain>example.com</search-domain><search-domain>corp.example.com</search-domain></dns></system>

@@ -1,0 +1,7 @@
+{
+  "node_name": "router-west-05",
+  "subscription_id": "3001",
+  "xpaths": [
+    "/example-routes:routes/route[destination-prefix='192.168.1.0/24'][next-hop='10.0.0.1']"
+  ]
+}

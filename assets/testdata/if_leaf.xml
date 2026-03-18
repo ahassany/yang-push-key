@@ -1,0 +1,1 @@
+<interfaces xmlns="urn:ietf:params:xml:ns:yang:ietf-interfaces"><interface><name>eth0</name><mtu>9000</mtu></interface></interfaces>

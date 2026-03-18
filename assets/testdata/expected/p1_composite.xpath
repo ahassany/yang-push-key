@@ -1,0 +1,1 @@
+/example-routes:routes/example-routes:route[example-routes:destination-prefix='192.168.1.0/24'][example-routes:next-hop='10.0.0.1']/example-routes:metric

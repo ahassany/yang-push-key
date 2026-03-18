@@ -1,0 +1,12 @@
+module example-routes {
+  namespace "urn:example:routes";
+  prefix rt;
+  container routes {
+    list route {
+      key "destination-prefix next-hop";
+      leaf destination-prefix { type string; }
+      leaf next-hop           { type string; }
+      leaf metric             { type uint32; }
+    }
+  }
+}

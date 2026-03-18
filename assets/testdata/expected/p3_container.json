@@ -1,0 +1,7 @@
+{
+  "node_name": "switch-lab-02",
+  "subscription_id": "2001",
+  "xpaths": [
+    "/ietf-system:system/clock"
+  ]
+}

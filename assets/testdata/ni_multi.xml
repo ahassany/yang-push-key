@@ -1,0 +1,1 @@
+<network-instances xmlns="urn:example:network"><network-instance><name>default</name><interface><id>eth1</id><status>down</status></interface><interface><id>eth0</id><status>up</status></interface></network-instance></network-instances>

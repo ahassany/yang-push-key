@@ -1,0 +1,19 @@
+module ietf-system {
+  namespace "urn:ietf:params:xml:ns:yang:ietf-system";
+  prefix sys;
+  container system {
+    container clock {
+      leaf timezone-utc-offset { type int16; }
+    }
+    container dns {
+      leaf-list search-domain { type string; }
+      list server {
+        key "name";
+        leaf name    { type string; }
+        leaf address { type string; }
+      }
+    }
+    leaf hostname { type string; }
+    leaf contact  { type string; }
+  }
+}

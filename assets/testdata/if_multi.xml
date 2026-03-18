@@ -1,0 +1,1 @@
+<interfaces xmlns="urn:ietf:params:xml:ns:yang:ietf-interfaces"><interface><name>eth1</name><oper-status>down</oper-status></interface><interface><name>eth0</name><oper-status>up</oper-status></interface></interfaces>

@@ -1,0 +1,1 @@
+/example-network:network-instances/network-instance[name='mgmt']/interface[id='%s']

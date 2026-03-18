@@ -1,0 +1,1 @@
+<routes xmlns="urn:example:routes"><route><destination-prefix>192.168.1.0/24</destination-prefix><next-hop>10.0.0.1</next-hop><metric>100</metric></route></routes>
