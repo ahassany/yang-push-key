@@ -44,7 +44,7 @@ use serde::Serialize;
 use yang4::context::{Context, ContextFlags};
 
 use yang_push_key::types::TargetType;
-use yang_push_key::{DerivationResult, derive_templates, normalize_subtree, produce_kafka_key};
+use yang_push_key::{DerivationResult, derive_templates, normalize_subtree, produce_message_key};
 
 // =====================================================================
 //  CLI argument definitions
@@ -189,6 +189,7 @@ struct BranchOutput {
 #[derive(Serialize)]
 struct ExtractionOutput {
     placeholder_index: usize,
+    extraction_xpath: String,
     key_leaf: String,
     list_module: String,
     list_name: String,
@@ -220,6 +221,7 @@ fn derivation_to_json(d: &DerivationResult) -> Phase2Output {
                     .enumerate()
                     .map(|(i, e)| ExtractionOutput {
                         placeholder_index: i,
+                        extraction_xpath: e.extraction_xpath.clone(),
                         key_leaf: e.key_leaf_name.clone(),
                         list_module: e.list_module.clone(),
                         list_name: e.list_name.clone(),
@@ -396,9 +398,9 @@ fn run_phase3(
 
     let derivation = derive_templates(&ctx, xpath)?;
     let dtree = parse_data_tree(&ctx, &data_xml)?;
-    let result = produce_kafka_key(&derivation, &dtree, node_name, sub_id)?;
+    let result = produce_message_key(&derivation, &dtree, node_name, sub_id)?;
 
-    println!("{}", result.kafka_key);
+    println!("{}", result.message_key);
     Ok(())
 }
 
@@ -416,9 +418,9 @@ fn run_pipeline(
     let xpath = normalize_subtree(&ctx, &subtree_xml)?;
     let derivation = derive_templates(&ctx, &xpath)?;
     let dtree = parse_data_tree(&ctx, &data_xml)?;
-    let result = produce_kafka_key(&derivation, &dtree, node_name, sub_id)?;
+    let result = produce_message_key(&derivation, &dtree, node_name, sub_id)?;
 
-    println!("{}", result.kafka_key);
+    println!("{}", result.message_key);
     Ok(())
 }
 

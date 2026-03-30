@@ -158,11 +158,11 @@ fn build_template(
                     template.push_str(&format!("[{}={}]", key_name, escape_xpath_value(&val)));
                 } else {
                     template.push_str(&format!("[{}='%s']", key_name));
-                    extractions.push(ExtractionSpec {
-                        key_leaf_name: key_name,
-                        list_module: mod_name.clone(),
-                        list_name: name.clone(),
-                    });
+                    extractions.push(ExtractionSpec::for_list_key(
+                        &key_name,
+                        &mod_name,
+                        &name,
+                    ));
                 }
             }
         }
@@ -179,11 +179,10 @@ fn build_template(
                 template.push_str(&format!("[.={}]", escape_xpath_value(&val)));
             } else {
                 template.push_str("[.='%s']");
-                extractions.push(ExtractionSpec {
-                    key_leaf_name: ".".into(),
-                    list_module: mod_name,
-                    list_name: name,
-                });
+                extractions.push(ExtractionSpec::for_leaf_list_value(
+                    &mod_name,
+                    &name,
+                ));
             }
         }
     }

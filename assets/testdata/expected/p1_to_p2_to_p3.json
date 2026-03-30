@@ -1,7 +1,0 @@
-{
-  "node_name": "router-nyc-01",
-  "subscription_id": "1042",
-  "xpaths": [
-    "/ietf-interfaces:interfaces/interface[name='eth0']"
-  ]
-}

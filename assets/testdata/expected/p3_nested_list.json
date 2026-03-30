@@ -1,7 +1,0 @@
-{
-  "node_name": "switch-dc-12",
-  "subscription_id": "7500",
-  "xpaths": [
-    "/example-network:network-instances/network-instance[name='default']/interface[id='eth0']"
-  ]
-}

@@ -13,18 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Phase 3 integration tests: data tree -> Kafka message key (JSON).
+//! Phase 3 integration tests: data tree -> message broker key (line-delimited).
 //!
 //! Each test follows the **Arrange-Act-Assert** pattern:
 //! - **Arrange**: create a YANG context, derive templates (Phase 2),
-//!   parse test XML data, and load the expected Kafka key JSON.
-//! - **Act**: call [`produce_kafka_key`].
+//!   parse test XML data, and load the expected message key.
+//! - **Act**: call [`produce_message_key`].
 //! - **Assert**: compare the produced key against the expected file.
 
 mod common;
 
 use common::{create_ctx, parse_data};
-use yang_push_key::{derive_templates, produce_kafka_key};
+use yang_push_key::{derive_templates, produce_message_key};
 
 // =====================================================================
 //  Single-instance notifications
@@ -36,12 +36,12 @@ fn p3_01_single_list_instance() {
     let derivation =
         derive_templates(&ctx, "/ietf-interfaces:interfaces/interface").expect("derivation failed");
     let data = parse_data(&ctx, include_str!("../assets/testdata/if_single.xml"));
-    let expected = include_str!("../assets/testdata/expected/p3_single_instance.json");
+    let expected = include_str!("../assets/testdata/expected/p3_single_instance.key");
 
-    let result = produce_kafka_key(&derivation, &data, "router-nyc-01", "1042")
+    let result = produce_message_key(&derivation, &data, "router-nyc-01", "1042")
         .expect("key production failed");
 
-    assert_eq!(result.kafka_key, expected);
+    assert_eq!(result.message_key, expected);
 }
 
 #[test]
@@ -53,12 +53,12 @@ fn p3_03_nested_list_instance() {
     )
     .expect("derivation failed");
     let data = parse_data(&ctx, include_str!("../assets/testdata/ni_single.xml"));
-    let expected = include_str!("../assets/testdata/expected/p3_nested_list.json");
+    let expected = include_str!("../assets/testdata/expected/p3_nested_list.key");
 
-    let result = produce_kafka_key(&derivation, &data, "switch-dc-12", "7500")
+    let result = produce_message_key(&derivation, &data, "switch-dc-12", "7500")
         .expect("key production failed");
 
-    assert_eq!(result.kafka_key, expected);
+    assert_eq!(result.message_key, expected);
 }
 
 #[test]
@@ -67,12 +67,12 @@ fn p3_05_composite_key_extraction() {
     let derivation =
         derive_templates(&ctx, "/example-routes:routes/route").expect("derivation failed");
     let data = parse_data(&ctx, include_str!("../assets/testdata/routes_single.xml"));
-    let expected = include_str!("../assets/testdata/expected/p3_composite_key.json");
+    let expected = include_str!("../assets/testdata/expected/p3_composite_key.key");
 
-    let result = produce_kafka_key(&derivation, &data, "router-west-05", "3001")
+    let result = produce_message_key(&derivation, &data, "router-west-05", "3001")
         .expect("key production failed");
 
-    assert_eq!(result.kafka_key, expected);
+    assert_eq!(result.message_key, expected);
 }
 
 #[test]
@@ -81,12 +81,12 @@ fn p3_07_leaf_inside_list() {
     let derivation = derive_templates(&ctx, "/ietf-interfaces:interfaces/interface/ietf-ip:ipv4/mtu")
         .expect("derivation failed");
     let data = parse_data(&ctx, include_str!("../assets/testdata/if_leaf.xml"));
-    let expected = include_str!("../assets/testdata/expected/p3_leaf_in_list.json");
+    let expected = include_str!("../assets/testdata/expected/p3_leaf_in_list.key");
 
-    let result = produce_kafka_key(&derivation, &data, "router-nyc-01", "1043")
+    let result = produce_message_key(&derivation, &data, "router-nyc-01", "1043")
         .expect("key production failed");
 
-    assert_eq!(result.kafka_key, expected);
+    assert_eq!(result.message_key, expected);
 }
 
 // =====================================================================
@@ -99,12 +99,12 @@ fn p3_04_container_produces_fixed_key() {
     let derivation =
         derive_templates(&ctx, "/ietf-system:system/clock").expect("derivation failed");
     let data = parse_data(&ctx, include_str!("../assets/testdata/sys_clock.xml"));
-    let expected = include_str!("../assets/testdata/expected/p3_container.json");
+    let expected = include_str!("../assets/testdata/expected/p3_container.key");
 
-    let result = produce_kafka_key(&derivation, &data, "switch-lab-02", "2001")
+    let result = produce_message_key(&derivation, &data, "switch-lab-02", "2001")
         .expect("key production failed");
 
-    assert_eq!(result.kafka_key, expected);
+    assert_eq!(result.message_key, expected);
 }
 
 // =====================================================================
@@ -117,12 +117,12 @@ fn p3_02_multiple_instances_sorted() {
     let derivation =
         derive_templates(&ctx, "/ietf-interfaces:interfaces/interface").expect("derivation failed");
     let data = parse_data(&ctx, include_str!("../assets/testdata/if_multi.xml"));
-    let expected = include_str!("../assets/testdata/expected/p3_multiple_instances.json");
+    let expected = include_str!("../assets/testdata/expected/p3_multiple_instances.key");
 
-    let result = produce_kafka_key(&derivation, &data, "router-nyc-01", "1042")
+    let result = produce_message_key(&derivation, &data, "router-nyc-01", "1042")
         .expect("key production failed");
 
-    assert_eq!(result.kafka_key, expected);
+    assert_eq!(result.message_key, expected);
     assert_eq!(result.key.xpaths.len(), 2);
     assert!(result.key.xpaths[0].contains("[name='eth0']"));
     assert!(result.key.xpaths[1].contains("[name='eth1']"));
@@ -138,7 +138,7 @@ fn p3_08_nested_multiple_inner_instances() {
     .expect("derivation failed");
     let data = parse_data(&ctx, include_str!("../assets/testdata/ni_multi.xml"));
 
-    let result = produce_kafka_key(&derivation, &data, "switch-dc-12", "7500")
+    let result = produce_message_key(&derivation, &data, "switch-dc-12", "7500")
         .expect("key production failed");
 
     assert_eq!(result.key.xpaths.len(), 2);
@@ -157,7 +157,7 @@ fn p3_09_leaf_list_values() {
         derive_templates(&ctx, "/ietf-system:system/dns-resolver/search").expect("derivation failed");
     let data = parse_data(&ctx, include_str!("../assets/testdata/sys_dns.xml"));
 
-    let result = produce_kafka_key(&derivation, &data, "router-east-03", "6000")
+    let result = produce_message_key(&derivation, &data, "router-east-03", "6000")
         .expect("key production failed");
 
     assert_eq!(result.key.xpaths.len(), 2);
@@ -175,12 +175,12 @@ fn p3_06_same_data_different_nodes_produce_distinct_keys() {
         derive_templates(&ctx, "/ietf-interfaces:interfaces/interface").expect("derivation failed");
     let data = parse_data(&ctx, include_str!("../assets/testdata/if_single.xml"));
 
-    let key_a = produce_kafka_key(&derivation, &data, "router-nyc-01", "1042")
+    let key_a = produce_message_key(&derivation, &data, "router-nyc-01", "1042")
         .expect("key production failed");
-    let key_b = produce_kafka_key(&derivation, &data, "router-lon-01", "1042")
+    let key_b = produce_message_key(&derivation, &data, "router-lon-01", "1042")
         .expect("key production failed");
 
-    assert_ne!(key_a.kafka_key, key_b.kafka_key);
+    assert_ne!(key_a.message_key, key_b.message_key);
     assert_eq!(key_a.key.node_name, "router-nyc-01");
     assert_eq!(key_b.key.node_name, "router-lon-01");
     // Same xpaths, different node_name
