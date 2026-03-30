@@ -576,33 +576,148 @@ utilities in isolation:
 
 ## CLI Usage Reference
 
-All subcommands require `--yang-dir` and at least one `-m` flag.
+All subcommands require `--yang-dir` and either at least one `-m` module flag
+or a `--yang-library` file (or both).
+
+### Schema Loading
+
+There are two ways to tell the CLI which YANG modules to load:
+
+#### Option A: Individual modules with `-m`
+
+List each module explicitly. Use `NAME:FEATURE1,FEATURE2` syntax to enable
+YANG features:
+
+```bash
+yang-push-key phase2 "/ietf-interfaces:interfaces/interface" \
+    --yang-dir assets/yang \
+    -m ietf-interfaces \
+    -m ietf-ip:ipv4-non-contiguous-netmasks,ipv6-privacy-autoconf
+```
+
+#### Option B: YANG Library file (`--yang-library`)
+
+Provide an [RFC 8525](https://datatracker.ietf.org/doc/html/rfc8525) YANG
+Library file (XML or JSON) that describes all implemented modules, their
+revisions, and enabled features. This is especially useful when many modules
+are needed and a network device already exports its YANG Library.
+
+An example YANG Library file is included at
+[`assets/yang/yang-library-interfaces.xml`](assets/yang/yang-library-interfaces.xml).
+It declares `ietf-interfaces` (with `arbitrary-names`, `pre-provisioning`,
+`if-mib` features) and `ietf-ip` (with `ipv4-non-contiguous-netmasks`,
+`ipv6-privacy-autoconf` features):
+
+```bash
+yang-push-key phase2 "/ietf-interfaces:interfaces/interface" \
+    --yang-dir assets/yang \
+    --yang-library assets/yang/yang-library-interfaces.xml
+```
+
+The data format is auto-detected from the file extension (`.xml` → XML,
+`.json` → JSON). Override with `--yang-library-format`:
+
+```bash
+yang-push-key phase2 "/ietf-interfaces:interfaces/interface" \
+    --yang-dir assets/yang \
+    --yang-library yang-lib.dat --yang-library-format xml
+```
+
+#### Combining both modes
+
+The YANG Library is loaded first, then any `-m` modules are loaded on top.
+This is handy when a base library exists but you need an extra module:
+
+```bash
+yang-push-key phase2 "/ietf-system:system/dns-resolver/search" \
+    --yang-dir assets/yang \
+    --yang-library assets/yang/yang-library-interfaces.xml \
+    -m ietf-system
+```
 
 ### Phase 1 — Subtree Filter to XPath
 
 ```bash
+# With individual modules:
 yang-push-key phase1 <SUBTREE_FILE> --yang-dir <DIR> -m <MODULE> [-m <MODULE>...]
+
+# With YANG Library:
+yang-push-key phase1 <SUBTREE_FILE> --yang-dir <DIR> --yang-library <FILE>
+```
+
+Example using the included YANG Library:
+
+```bash
+yang-push-key phase1 assets/testdata/p1_simple.xml \
+    --yang-dir assets/yang \
+    --yang-library assets/yang/yang-library-interfaces.xml
+# Output: /ietf-interfaces:interfaces/ietf-interfaces:interface
 ```
 
 ### Phase 2 — XPath to Key Template (JSON)
 
 ```bash
+# With individual modules:
 yang-push-key phase2 <XPATH> --yang-dir <DIR> -m <MODULE> [-m <MODULE>...]
+
+# With YANG Library:
+yang-push-key phase2 <XPATH> --yang-dir <DIR> --yang-library <FILE>
+```
+
+Example — derive a key template for the IP address list (augmented by ietf-ip
+onto ietf-interfaces):
+
+```bash
+yang-push-key phase2 \
+    "/ietf-interfaces:interfaces/interface/ietf-ip:ipv4/address" \
+    --yang-dir assets/yang \
+    --yang-library assets/yang/yang-library-interfaces.xml
+```
+
+Output (abbreviated):
+
+```json
+{
+  "subscription_xpath": "/ietf-interfaces:interfaces/interface/ietf-ip:ipv4/address",
+  "branches": [
+    {
+      "branch_index": 0,
+      "branch_xpath": "/ietf-interfaces:interfaces/interface/ietf-ip:ipv4/address",
+      "key_template": "/ietf-interfaces:interfaces/interface[name='%s']/ietf-ip:ipv4/address[ip='%s']",
+      "target_type": "list",
+      "extractions": [
+        { "placeholder_index": 0, "key_leaf": "name",  "list_module": "ietf-interfaces", "list_name": "interface" },
+        { "placeholder_index": 1, "key_leaf": "ip",    "list_module": "ietf-ip",         "list_name": "address"   }
+      ]
+    }
+  ]
+}
 ```
 
 ### Phase 3 — Notification Data to Kafka Key (JSON)
 
 ```bash
+# With individual modules:
 yang-push-key phase3 <DATA_FILE> --xpath <XPATH> --node-name <NAME> --sub-id <ID> \
     --yang-dir <DIR> -m <MODULE> [-m <MODULE>...]
+
+# With YANG Library:
+yang-push-key phase3 <DATA_FILE> --xpath <XPATH> --node-name <NAME> --sub-id <ID> \
+    --yang-dir <DIR> --yang-library <FILE>
 ```
 
 ### Pipeline — Full End-to-End (JSON)
 
 ```bash
+# With individual modules:
 yang-push-key pipeline <DATA_FILE> --subtree <SUBTREE_FILE> \
     --node-name <NAME> --sub-id <ID> \
     --yang-dir <DIR> -m <MODULE> [-m <MODULE>...]
+
+# With YANG Library:
+yang-push-key pipeline <DATA_FILE> --subtree <SUBTREE_FILE> \
+    --node-name <NAME> --sub-id <ID> \
+    --yang-dir <DIR> --yang-library <FILE>
 ```
 
 ### Stdin Support
@@ -646,6 +761,7 @@ yang-push-key-rs/
 |   +-- pipeline.rs     # 4 end-to-end pipeline tests
 +-- assets/
     +-- yang/           # 7 YANG schema files
+    |   +-- yang-library-interfaces.xml  # Example YANG Library (RFC 8525)
     +-- testdata/       # 31 XML input fixtures
         +-- expected/   # 43 expected output files (.xpath, .template, .key)
 ```

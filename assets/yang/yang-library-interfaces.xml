@@ -1,0 +1,76 @@
+<!--
+  YANG Library (RFC 8525) describing a device that implements
+  ietf-interfaces (RFC 8343) with ietf-ip (RFC 8344) augmentations.
+
+  Use with the yang-push-key CLI via the yang-library flag, e.g.:
+
+    yang-push-key phase2 "/ietf-interfaces:interfaces/interface"
+        yang-dir assets/yang
+        yang-library assets/yang/yang-library-interfaces.xml
+
+  Enabled features:
+    ietf-interfaces : arbitrary-names, pre-provisioning, if-mib
+    ietf-ip         : ipv4-non-contiguous-netmasks, ipv6-privacy-autoconf
+-->
+<yang-library xmlns="urn:ietf:params:xml:ns:yang:ietf-yang-library"
+              xmlns:ds="urn:ietf:params:xml:ns:yang:ietf-datastores">
+  <module-set>
+    <name>main-set</name>
+
+    <!-- Implemented modules ====================================== -->
+
+    <module>
+      <name>ietf-interfaces</name>
+      <revision>2018-02-20</revision>
+      <namespace>urn:ietf:params:xml:ns:yang:ietf-interfaces</namespace>
+      <feature>arbitrary-names</feature>
+      <feature>pre-provisioning</feature>
+      <feature>if-mib</feature>
+    </module>
+
+    <module>
+      <name>ietf-ip</name>
+      <revision>2018-02-22</revision>
+      <namespace>urn:ietf:params:xml:ns:yang:ietf-ip</namespace>
+      <feature>ipv4-non-contiguous-netmasks</feature>
+      <feature>ipv6-privacy-autoconf</feature>
+    </module>
+
+    <!-- Import-only modules (used by the above but not implemented) -->
+
+    <import-only-module>
+      <name>ietf-yang-types</name>
+      <revision>2013-07-15</revision>
+      <namespace>urn:ietf:params:xml:ns:yang:ietf-yang-types</namespace>
+    </import-only-module>
+
+    <import-only-module>
+      <name>ietf-inet-types</name>
+      <revision>2013-07-15</revision>
+      <namespace>urn:ietf:params:xml:ns:yang:ietf-inet-types</namespace>
+    </import-only-module>
+
+  </module-set>
+
+  <schema>
+    <name>main-schema</name>
+    <module-set>main-set</module-set>
+  </schema>
+
+  <datastore>
+    <name>ds:running</name>
+    <schema>main-schema</schema>
+  </datastore>
+
+  <datastore>
+    <name>ds:operational</name>
+    <schema>main-schema</schema>
+  </datastore>
+
+  <content-id>1</content-id>
+</yang-library>
+<modules-state xmlns="urn:ietf:params:xml:ns:yang:ietf-yang-library">
+  <module-set-id>1</module-set-id>
+</modules-state>
+
+

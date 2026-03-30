@@ -23,6 +23,16 @@
 //! yang-push-key phase3   XPath + data XML    ->  Kafka key (JSON)
 //! yang-push-key pipeline Subtree + data XML  ->  Kafka key (JSON, all phases)
 //! ```
+//!
+//! ## Schema loading
+//!
+//! YANG modules can be specified in two ways:
+//!
+//! 1. **Individual modules** — `-m ietf-interfaces -m ietf-ip:feature1,feature2`
+//! 2. **YANG Library (RFC 8525)** — `--yang-library yang-library.xml`
+//!
+//! Both require `--yang-dir <DIR>` pointing at the directory that
+//! contains the `.yang` files.  The two modes can be combined.
 
 use std::fs;
 use std::io::{self, Read};
@@ -112,6 +122,18 @@ enum Command {
 }
 
 /// Common YANG schema loading arguments shared by all subcommands.
+///
+/// Two mutually-complementary modes are supported:
+///
+/// 1. **Module list** (the original mode) — provide `--yang-dir` and
+///    one or more `-m MODULE` flags.
+/// 2. **YANG Library** — provide `--yang-library` (a
+///    [RFC 8525](https://datatracker.ietf.org/doc/html/rfc8525) file)
+///    and `--yang-dir` for the search path.  All modules, revisions,
+///    and features described in the library are loaded automatically.
+///
+/// The two modes may be combined: the library is loaded first, then
+/// any extra `-m` modules are loaded on top.
 #[derive(clap::Args)]
 struct YangArgs {
     /// Path to directory containing .yang module files.
@@ -125,8 +147,24 @@ struct YangArgs {
     /// Examples:
     ///   -m ietf-interfaces
     ///   -m ietf-ip:ipv4-non-contiguous-netmasks,ipv6-privacy-autoconf
-    #[arg(short = 'm', long = "module", value_name = "MODULE", required = true)]
+    #[arg(short = 'm', long = "module", value_name = "MODULE")]
     modules: Vec<String>,
+
+    /// Path to a YANG Library file (RFC 8525, XML or JSON).
+    ///
+    /// When provided, the context is bootstrapped from this file so
+    /// you don't have to enumerate every module with `-m`.
+    /// Use `--yang-library-format` to override the auto-detected format.
+    #[arg(long, value_name = "FILE")]
+    yang_library: Option<PathBuf>,
+
+    /// Data format of the YANG Library file.
+    ///
+    /// If omitted the format is inferred from the file extension
+    /// (.xml → XML, .json → JSON).  Use this flag when the extension
+    /// is ambiguous.
+    #[arg(long, value_name = "FORMAT", value_parser = parse_data_format)]
+    yang_library_format: Option<yang4::data::DataFormat>,
 }
 
 // =====================================================================
@@ -196,6 +234,36 @@ fn derivation_to_json(d: &DerivationResult) -> Phase2Output {
 //  Helpers
 // =====================================================================
 
+/// Parse a data-format string ("xml" or "json") for clap.
+fn parse_data_format(s: &str) -> Result<yang4::data::DataFormat, String> {
+    match s.to_ascii_lowercase().as_str() {
+        "xml" => Ok(yang4::data::DataFormat::XML),
+        "json" => Ok(yang4::data::DataFormat::JSON),
+        other => Err(format!(
+            "unsupported YANG library format '{}' (expected 'xml' or 'json')",
+            other
+        )),
+    }
+}
+
+/// Infer the [`DataFormat`] from a file extension.
+fn infer_library_format(path: &std::path::Path) -> Result<yang4::data::DataFormat, String> {
+    match path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_ascii_lowercase())
+        .as_deref()
+    {
+        Some("xml") => Ok(yang4::data::DataFormat::XML),
+        Some("json") => Ok(yang4::data::DataFormat::JSON),
+        _ => Err(format!(
+            "cannot infer YANG library format from '{}'; \
+             use --yang-library-format xml|json",
+            path.display()
+        )),
+    }
+}
+
 /// Read file contents, or stdin when path is "-".
 fn read_input(path: &str) -> Result<String, String> {
     if path == "-" {
@@ -219,18 +287,51 @@ fn parse_module_spec(spec: &str) -> (&str, Vec<&str>) {
 
 /// Create a libyang context, set the search directory, and load all
 /// requested YANG modules.
+///
+/// When `--yang-library` is provided the context is created from the
+/// RFC 8525 file (XML or JSON).  Any additional `-m` modules are
+/// loaded on top.  When `--yang-library` is absent at least one `-m`
+/// module must be supplied.
 fn build_context(args: &YangArgs) -> Result<Context, String> {
-    let mut ctx = Context::new(ContextFlags::NO_YANGLIBRARY)
-        .map_err(|e| format!("failed to create libyang context: {}", e))?;
-
-    ctx.set_searchdir(&args.yang_dir).map_err(|e| {
-        format!(
-            "failed to set search dir '{}': {}",
-            args.yang_dir.display(),
-            e
+    let mut ctx = if let Some(ref lib_path) = args.yang_library {
+        // --- YANG Library mode ---
+        let fmt = match args.yang_library_format {
+            Some(f) => f,
+            None => infer_library_format(lib_path)?,
+        };
+        Context::new_from_yang_library_file(
+            lib_path,
+            fmt,
+            &args.yang_dir,
+            ContextFlags::empty(),
         )
-    })?;
+        .map_err(|e| {
+            format!(
+                "failed to create context from YANG library '{}': {}",
+                lib_path.display(),
+                e
+            )
+        })?
+    } else {
+        // --- Module-list mode (original) ---
+        if args.modules.is_empty() {
+            return Err(
+                "either --yang-library or at least one -m/--module is required".into(),
+            );
+        }
+        let mut ctx = Context::new(ContextFlags::NO_YANGLIBRARY)
+            .map_err(|e| format!("failed to create libyang context: {}", e))?;
+        ctx.set_searchdir(&args.yang_dir).map_err(|e| {
+            format!(
+                "failed to set search dir '{}': {}",
+                args.yang_dir.display(),
+                e
+            )
+        })?;
+        ctx
+    };
 
+    // Load any explicitly requested modules (works in both modes).
     for spec in &args.modules {
         let (name, features) = parse_module_spec(spec);
         let feat_refs: Vec<&str> = features.to_vec();
