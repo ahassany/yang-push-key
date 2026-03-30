@@ -2,6 +2,6 @@
   "node_name": "router-nyc-01",
   "subscription_id": "1043",
   "xpaths": [
-    "/ietf-interfaces:interfaces/interface[name='eth0']/mtu"
+    "/ietf-interfaces:interfaces/interface[name='eth0']/ietf-ip:ipv4/mtu"
   ]
 }

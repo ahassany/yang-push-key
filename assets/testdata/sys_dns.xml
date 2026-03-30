@@ -1,1 +1,6 @@
-<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><dns><search-domain>example.com</search-domain><search-domain>corp.example.com</search-domain></dns></system>
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
+    <dns-resolver>
+        <search>example.com</search>
+        <search>corp.example.com</search>
+    </dns-resolver>
+</system>

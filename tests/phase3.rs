@@ -77,8 +77,8 @@ fn p3_05_composite_key_extraction() {
 
 #[test]
 fn p3_07_leaf_inside_list() {
-    let ctx = create_ctx(&[("ietf-interfaces", &[])]);
-    let derivation = derive_templates(&ctx, "/ietf-interfaces:interfaces/interface/mtu")
+    let ctx = create_ctx(&[("ietf-ip", &[]), ("ietf-interfaces", &[])]);
+    let derivation = derive_templates(&ctx, "/ietf-interfaces:interfaces/interface/ietf-ip:ipv4/mtu")
         .expect("derivation failed");
     let data = parse_data(&ctx, include_str!("../assets/testdata/if_leaf.xml"));
     let expected = include_str!("../assets/testdata/expected/p3_leaf_in_list.json");
@@ -154,7 +154,7 @@ fn p3_08_nested_multiple_inner_instances() {
 fn p3_09_leaf_list_values() {
     let ctx = create_ctx(&[("ietf-system", &[])]);
     let derivation =
-        derive_templates(&ctx, "/ietf-system:system/dns/search-domain").expect("derivation failed");
+        derive_templates(&ctx, "/ietf-system:system/dns-resolver/search").expect("derivation failed");
     let data = parse_data(&ctx, include_str!("../assets/testdata/sys_dns.xml"));
 
     let result = produce_kafka_key(&derivation, &data, "router-east-03", "6000")

@@ -1,1 +1,1 @@
-/ietf-interfaces:interfaces/interface[name='eth0']/mtu
+/ietf-interfaces:interfaces/interface[name='eth0']/ietf-ip:ipv4/mtu

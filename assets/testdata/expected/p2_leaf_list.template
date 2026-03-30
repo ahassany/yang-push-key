@@ -1,1 +1,1 @@
-/ietf-system:system/dns/search-domain[.='%s']
+/ietf-system:system/dns-resolver/search[.='%s']

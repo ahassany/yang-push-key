@@ -106,8 +106,8 @@ fn p2_05_container_only_no_placeholders() {
 
 #[test]
 fn p2_06_leaf_inside_list() {
-    let ctx = create_ctx(&[("ietf-interfaces", &[])]);
-    let xpath = "/ietf-interfaces:interfaces/interface/mtu";
+    let ctx = create_ctx(&[("ietf-ip", &[]), ("ietf-interfaces", &[])]);
+    let xpath = "/ietf-interfaces:interfaces/interface/ietf-ip:ipv4/mtu";
     let expected_template = include_str!("../assets/testdata/expected/p2_leaf_in_list.template");
 
     let result = derive_templates(&ctx, xpath).expect("derivation failed");
@@ -120,7 +120,7 @@ fn p2_06_leaf_inside_list() {
 #[test]
 fn p2_07_leaf_list_target() {
     let ctx = create_ctx(&[("ietf-system", &[])]);
-    let xpath = "/ietf-system:system/dns/search-domain";
+    let xpath = "/ietf-system:system/dns-resolver/search";
     let expected_template = include_str!("../assets/testdata/expected/p2_leaf_list.template");
 
     let result = derive_templates(&ctx, xpath).expect("derivation failed");
@@ -197,7 +197,7 @@ fn p2_10b_union_three_branches_mixed_types() {
     let ctx = create_ctx(&[("ietf-interfaces", &[]), ("ietf-system", &[])]);
     let xpath = "/ietf-interfaces:interfaces/interface \
                  | /ietf-system:system/clock \
-                 | /ietf-system:system/dns/search-domain";
+                 | /ietf-system:system/dns-resolver/search";
 
     let result = derive_templates(&ctx, xpath).expect("derivation failed");
 
@@ -336,8 +336,8 @@ fn p2_20_value_containing_single_quote() {
 
 #[test]
 fn p2_22_concrete_leaf_inside_concrete_list() {
-    let ctx = create_ctx(&[("ietf-interfaces", &[])]);
-    let xpath = "/ietf-interfaces:interfaces/interface[name='eth0']/mtu";
+    let ctx = create_ctx(&[("ietf-ip", &[]), ("ietf-interfaces", &[])]);
+    let xpath = "/ietf-interfaces:interfaces/interface[name='eth0']/ietf-ip:ipv4/mtu";
     let expected_template = include_str!("../assets/testdata/expected/p2_concrete_leaf.template");
 
     let result = derive_templates(&ctx, xpath).expect("derivation failed");
@@ -350,7 +350,7 @@ fn p2_22_concrete_leaf_inside_concrete_list() {
 #[test]
 fn p2_23_concrete_leaf_list_value() {
     let ctx = create_ctx(&[("ietf-system", &[])]);
-    let xpath = "/ietf-system:system/dns/search-domain[.='example.com']";
+    let xpath = "/ietf-system:system/dns-resolver/search[.='example.com']";
 
     let result = derive_templates(&ctx, xpath).expect("derivation failed");
 

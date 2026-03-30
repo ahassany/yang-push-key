@@ -29,7 +29,7 @@ use yang_push_key::{derive_templates, normalize_subtree, produce_kafka_key};
 
 #[test]
 fn pipeline_p1_to_p2_pinned_key_and_container() {
-    let ctx = create_ctx(&[("ietf-interfaces", &[]), ("ietf-system", &[])]);
+    let ctx = create_ctx(&[("ietf-ip", &[]), ("ietf-interfaces", &[]), ("ietf-system", &[])]);
     let filter_xml = include_str!("../assets/testdata/p1_pipeline.xml");
 
     let xpath = normalize_subtree(&ctx, filter_xml).expect("Phase 1 failed");
