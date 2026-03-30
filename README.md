@@ -358,6 +358,243 @@ Requires a C compiler and CMake (for the bundled libyang4 build).
 cargo build --release
 ```
 
+## Exploring YANG Schemas with yanglint
+
+[`yanglint`](https://netopeer.liberouter.org/doc/libyang/master/html/howto_yanglint.html)
+is the CLI tool shipped with libyang. You can use it (in non-interactive mode)
+to inspect YANG modules, discover list keys, and understand the XPath
+structure that this tool operates on.
+
+### Print the full schema tree
+
+```bash
+yanglint -p assets/yang -f tree assets/yang/ietf-interfaces@2018-02-20.yang
+```
+
+Output (abbreviated):
+
+```
+module: ietf-interfaces
+  +--rw interfaces
+     +--rw interface* [name]
+        +--rw name                        string
+        +--rw description?                string
+        +--rw type                        identityref
+        +--rw enabled?                    boolean
+        +--ro oper-status                 enumeration
+        +--ro statistics
+           +--ro discontinuity-time    yang:date-and-time
+           +--ro in-octets?            yang:counter64
+           ...
+```
+
+The `[name]` annotation on `interface*` tells you that `name` is the list
+key — the leaf whose value uniquely identifies each list entry. This is the
+value that Phase 2 turns into a `[name='%s']` placeholder and Phase 3 fills
+from the notification data.
+
+### Inspect a single schema node
+
+Use `-P` (schema path) with `-q` (single-node) to zoom in on one node:
+
+```bash
+yanglint -p assets/yang \
+    -P "/ietf-interfaces:interfaces/interface" -q -f tree \
+    assets/yang/ietf-interfaces@2018-02-20.yang
+```
+
+```
+module: ietf-interfaces
+  +--rw interfaces
+     +--rw interface* [name]
+```
+
+This confirms that `interface` is a `list` keyed by `name`.
+
+### Show detailed node information
+
+Switch to `-f info` for the full schema properties (key names, config flag,
+status, ordered-by, etc.):
+
+```bash
+yanglint -p assets/yang \
+    -P "/ietf-interfaces:interfaces/interface" -q -f info \
+    assets/yang/ietf-interfaces@2018-02-20.yang
+```
+
+```
+list interface {
+  key "name";
+  config true;
+  min-elements 0;
+  max-elements 4294967295;
+  ordered-by system;
+  status current;
+  ...
+}
+```
+
+### Composite keys
+
+Some lists have more than one key leaf. For example, the `example-routes`
+module has a route list keyed by both `destination-prefix` and `next-hop`:
+
+```bash
+yanglint -p assets/yang -f tree assets/yang/example-routes.yang
+```
+
+```
+module: example-routes
+  +--rw routes
+     +--rw route* [destination-prefix next-hop]
+        +--rw destination-prefix    string
+        +--rw next-hop              string
+        +--rw metric?               uint32
+```
+
+Phase 2 produces a template with two placeholders for this list:
+`route[destination-prefix='%s'][next-hop='%s']`.
+
+### Nested lists
+
+Lists can be nested. In `example-network`, each `network-instance` contains
+an inner `interface` list with its own key:
+
+```bash
+yanglint -p assets/yang -f tree assets/yang/example-network.yang
+```
+
+```
+module: example-network
+  +--rw network-instances
+     +--rw network-instance* [name]
+        +--rw name    string
+        +--rw interface* [id]
+           +--rw id        string
+           +--rw status?   string
+```
+
+Phase 2 produces: `network-instance[name='%s']/interface[id='%s']` — two
+extractions, one for each list level.
+
+### Containers, leaf-lists, and mixed structures
+
+The `ietf-system` module illustrates containers (no key), leaf-lists, and
+nested lists all in one tree:
+
+```bash
+yanglint -p assets/yang -f tree assets/yang/ietf-system@2014-08-06.yang
+```
+
+```
+module: ietf-system
+  +--rw system
+     +--rw contact?          string
+     +--rw hostname?         inet:domain-name
+     +--rw clock
+     |  +--rw (timezone)?
+     |     ...
+     +--rw dns-resolver
+        +--rw search*    inet:domain-name    ← leaf-list (no key, value is the key)
+        +--rw server* [name]                 ← list keyed by name
+        |  +--rw name           string
+        |  ...
+```
+
+- `system/clock` is a **container** — Phase 2 emits it as-is with no
+  placeholders.
+- `dns-resolver/search` is a **leaf-list** — Phase 2 appends `[.='%s']`.
+- `dns-resolver/server` is a **list** — Phase 2 appends `[name='%s']`.
+
+### Validate data against the schema
+
+You can also use `yanglint` to parse and validate notification data against
+the schema, and re-emit it in a different format:
+
+```bash
+yanglint -n -p assets/yang -t data -f json \
+    assets/yang/ietf-interfaces@2018-02-20.yang \
+    assets/testdata/if_single.xml
+```
+
+```json
+{
+  "ietf-interfaces:interfaces": {
+    "interface": [
+      {
+        "name": "eth0",
+        "oper-status": "up"
+      }
+    ]
+  }
+}
+```
+
+The JSON output shows the module-prefixed top-level node
+(`ietf-interfaces:interfaces`) — the same prefix style that Phase 2 uses in
+key templates. The `-n` flag relaxes validation so partial data (like a
+notification snippet missing mandatory leaves) is accepted.
+
+### Extract key values from notification data
+
+After Phase 2 produces extraction specs, you can use yanglint's
+`-E XPATH` / `--data-xpath=XPATH` flag to extract the key leaf values from
+notification data. This is useful for verifying what Phase 3 does internally
+— each `-E` expression selects data nodes from the parsed tree and prints
+their values.
+
+For example, Phase 2 for `/ietf-interfaces:interfaces/interface` produces:
+
+```
+Template:    /ietf-interfaces:interfaces/interface[name='%s']
+Extraction:  ancestor-or-self::ietf-interfaces:interface/name
+```
+
+The extraction tells you the key leaf is `name` in the `interface` list.
+Translate that to an absolute XPath and pass it to `yanglint -E`:
+
+```bash
+yanglint -n -p assets/yang -t data \
+    -E "/ietf-interfaces:interfaces/interface/name" \
+    assets/yang/ietf-interfaces@2018-02-20.yang \
+    assets/testdata/if_multi.xml
+```
+
+This returns the `name` values for every interface instance in the data —
+`eth1` and `eth0` — the same values Phase 3 uses to fill the `%s`
+placeholders and produce the concrete XPaths in the message key.
+
+For nested lists the same approach applies. Phase 2 for
+`/example-network:network-instances/network-instance/interface` produces two
+extractions:
+
+```
+Template:      /example-network:network-instances/network-instance[name='%s']/interface[id='%s']
+Extraction 0:  ancestor-or-self::example-network:network-instance/name
+Extraction 1:  ancestor-or-self::example-network:interface/id
+```
+
+Extract each key leaf independently with `-E`:
+
+```bash
+# Outer list key (network-instance name)
+yanglint -n -p assets/yang -t data \
+    -E "/example-network:network-instances/network-instance/name" \
+    assets/yang/example-network.yang \
+    assets/testdata/ni_single.xml
+
+# Inner list key (interface id)
+yanglint -n -p assets/yang -t data \
+    -E "/example-network:network-instances/network-instance/interface/id" \
+    assets/yang/example-network.yang \
+    assets/testdata/ni_single.xml
+```
+
+The mapping from Phase 2 extraction XPaths to yanglint `-E` arguments is
+straightforward: replace the `ancestor-or-self::MODULE:LIST/KEY` form with
+the corresponding absolute path from root to the key leaf. The module prefix
+on the first segment matches what Phase 2 already uses in the key template.
+
 ## Running the Test Suite
 
 ```bash
