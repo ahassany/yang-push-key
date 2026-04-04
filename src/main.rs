@@ -44,7 +44,7 @@ use serde::Serialize;
 use yang4::context::{Context, ContextFlags};
 
 use yang_push_key::types::TargetType;
-use yang_push_key::{DerivationResult, derive_templates, normalize_subtree, produce_message_key};
+use yang_push_key::{DerivationResult, TopicConfig, derive_templates, derive_topic_names, normalize_subtree, produce_message_key};
 
 // =====================================================================
 //  CLI argument definitions
@@ -116,6 +116,24 @@ enum Command {
         /// YANG Push subscription ID.
         #[arg(long)]
         sub_id: String,
+        #[command(flatten)]
+        yang: YangArgs,
+    },
+
+    /// Derive message broker topic name(s) from a subscription XPath.
+    ///
+    /// Runs Phase 2 internally, strips predicates from the key
+    /// template, replaces YANG module names with their short prefixes,
+    /// and prints one topic name per line (one per union branch).
+    Topic {
+        /// The subscription XPath expression.
+        xpath: String,
+        /// Optional organization/team prefix prepended to topic names.
+        #[arg(long)]
+        prefix: Option<String>,
+        /// Maximum topic name length (default: 255).
+        #[arg(long, default_value = "255")]
+        max_length: usize,
         #[command(flatten)]
         yang: YangArgs,
     },
@@ -417,6 +435,28 @@ fn run_pipeline(
     Ok(())
 }
 
+fn run_topic(
+    xpath: &str,
+    prefix: &Option<String>,
+    max_length: usize,
+    yang: &YangArgs,
+) -> Result<(), String> {
+    let ctx = build_context(yang)?;
+
+    let mut config = TopicConfig::new().with_max_length(max_length);
+    if let Some(pfx) = prefix {
+        config = config.with_prefix(pfx.as_str());
+    }
+
+    let derivation = derive_templates(&ctx, xpath)?;
+    let topics = derive_topic_names(&ctx, &derivation, &config)?;
+
+    for name in &topics.topic_names {
+        println!("{}", name);
+    }
+    Ok(())
+}
+
 // =====================================================================
 //  Entry point
 // =====================================================================
@@ -441,6 +481,12 @@ fn main() {
             sub_id,
             yang,
         } => run_pipeline(data_file, subtree, node_name, sub_id, yang),
+        Command::Topic {
+            xpath,
+            prefix,
+            max_length,
+            yang,
+        } => run_topic(xpath, prefix, *max_length, yang),
     };
 
     if let Err(msg) = result {

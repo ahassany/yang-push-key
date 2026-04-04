@@ -49,9 +49,11 @@ pub mod phase2;
 pub mod phase3;
 pub mod types;
 pub mod xpath;
+pub mod topic;
 
 // Re-export the main entry points for convenience.
 pub use phase1::normalize_subtree;
 pub use phase2::derive_templates;
 pub use phase3::produce_message_key;
+pub use topic::{derive_topic_names, TopicConfig};
 pub use types::*;
