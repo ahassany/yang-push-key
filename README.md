@@ -1,15 +1,16 @@
 # yang-push-key
 
-Derive unique Apache Kafka message keys from YANG Push on-change notifications
-([RFC 8641](https://www.rfc-editor.org/rfc/rfc8641)).
+Derive unique message broker message keys from YANG Push on-change notifications
+([RFC 8641](https://www.rfc-editor.org/rfc/rfc8641)), as defined in
+[draft-ietf-nmop-yang-message-broker-message-key-03](assets/docs/draft-ietf-nmop-yang-message-broker-message-key-03.xml).
 
 ## Problem Statement
 
 YANG Push ([RFC 8641](https://www.rfc-editor.org/rfc/rfc8641)) allows network
 devices to stream configuration and state changes as notifications. When these
-notifications are published to an Apache Kafka compact topic, each message
-needs a deterministic key so that Kafka's log compaction retains only the most
-recent value for each logical piece of state.
+notifications are published to a message broker compact topic, each message
+needs a deterministic key so that the broker's log compaction retains only the
+most recent value for each logical piece of state.
 
 The challenge is that YANG Push subscriptions can target any node in the schema
 tree — a single leaf, a list entry, an entire container, or even a union of
@@ -21,36 +22,41 @@ double-quoted vs. single-quoted predicates, positional subscripts, etc.).
 
 This tool solves the problem with a three-phase algorithm that normalizes these
 variants, resolves the subscription against the YANG schema, and produces a
-compact, deterministic JSON key at notification delivery time.
+compact, deterministic line-delimited key at notification delivery time.
 
-## Kafka Key Format
+## Message Key Format
 
-The output key is a compact JSON object with deterministic field ordering:
+The output key is a line-delimited UTF-8 byte string with exactly three fields
+separated by newline (LF, U+000A):
 
-```json
-{
-  "node_name": "router-nyc-01",
-  "subscription_id": "1042",
-  "xpaths": [
-    "/ietf-interfaces:interfaces/interface[name='eth0']"
-  ]
-}
+```
+router-nyc-01
+1042
+/ietf-interfaces:interfaces/interface[name='eth0']
 ```
 
-| Field             | Type            | Description                                    |
-|-------------------|-----------------|------------------------------------------------|
-| `node_name`       | string          | Managed node identifier (hostname, FQDN, etc.) |
-| `subscription_id` | string          | YANG Push subscription ID                      |
-| `xpaths`          | array of string | Sorted, deduplicated concrete XPaths           |
+| Line | Description                                                       |
+|------|-------------------------------------------------------------------|
+| 1    | `node_name` — Managed node identifier (hostname, FQDN, etc.)     |
+| 2    | `subscription_id` — YANG Push subscription ID                    |
+| 3    | Concrete XPaths, sorted lexicographically, joined by ` \| `      |
 
-Compact serialization (no whitespace) guarantees byte-identical keys for
-identical inputs — the invariant Kafka log compaction depends on.
+The key MUST NOT contain a trailing newline after the XPath line.
 
 When a single notification carries multiple instances (e.g. two interfaces
-changed at once), the `xpaths` array contains one entry per instance, sorted
-lexicographically. This means one notification always produces exactly one
-Kafka message, and the key is always deterministic regardless of the order the
-instances appear in the XML.
+changed at once), all concrete XPaths are joined by ` | ` on the third line,
+sorted lexicographically and deduplicated:
+
+```
+router-nyc-01
+1042
+/ietf-interfaces:interfaces/interface[name='eth0'] | /ietf-interfaces:interfaces/interface[name='eth1']
+```
+
+This line-delimited format guarantees deterministic serialization without the
+ambiguities of structured encodings such as JSON (where key ordering and
+whitespace may vary across implementations). The key is a plain byte string
+suitable for direct use as a message broker record key.
 
 ## Algorithm
 
@@ -61,25 +67,25 @@ runs once at subscription creation time. Phase 3 runs for every notification.
 ```
   +-------------------+       +--------------+
   | Subtree Filter    |------>| Phase 1:     |---> Normalized XPath(s)
-  | (if applicable)   |       | Normalize    |     (full-prefix style)
-  +-------------------+       +--------------+           |
-                                                         v
+  | (if applicable)   |       | Normalize    |
+  +-------------------+       +--------------+
+                                      |
+                                      v
   +-------------------+       +--------------+     +---------------+
   | Subscription Path |------>|              |     | Key Templates |
-  | (XPath, possibly  |       |  Phase 2:    |---->| (minimal-     |
-  |  from Phase 1)    |       |  Schema      |     |  prefix, %s)  |
+  | (XPath, possibly  |       |  Phase 2:    |---->| + Extraction  |
+  |  from Phase 1)    |       |  Schema      |     |   Specs       |
   +-------------------+       |  Resolution  |     +---------------+
-  | YANG Schema Tree  |------>|              |     | Extraction    |
-  +-------------------+       +--------------+     | Specs[]       |
-                                                   +-------+-------+
-                                                           |
-                                                           v
-  +-------------------+       +--------------+     +-----------------+
-  | Parsed Data Tree  |------>|              |     | Kafka Key       |
-  +-------------------+       |  Phase 3:    |---->| device/sub-id   |
-  | Device Name       |------>|  Data Walk   |     | /concrete-keys  |
-  | Subscription ID   |------>|              |     +-----------------+
+  | YANG Schema Tree  |------>|              |
   +-------------------+       +--------------+
+                                      |
+                                      v
+  +-------------------+       +--------------+     +--------------+
+  | Parsed Data Tree  |------>|              |     | Message Key  |
+  +-------------------+       |  Phase 3:    |---->| (line-       |
+  | Node Name         |------>|  Data Walk   |     |  delimited)  |
+  | Subscription ID   |------>|              |     |              |
+  +-------------------+       +--------------+     +--------------+
 ```
 
 
@@ -157,6 +163,27 @@ Example template for `/example-routes:routes/route[destination-prefix='10.0.0.0/
 
 The first key is pinned (literal), the second is open (placeholder).
 
+#### Extraction Format
+
+Each open placeholder has a corresponding **extraction specification** that
+describes which key leaf value must be read from the notification data. The
+extraction is expressed as an absolute XPath that mirrors the template path
+from the root to the owning list (preserving any pinned predicates on ancestor
+lists) and appends the key leaf name without a predicate:
+
+```
+/MODULE:CONTAINER/.../LIST/KEY-LEAF-NAME
+```
+
+For example:
+
+| Template | Extraction |
+|----------|-----------|
+| `/ietf-interfaces:interfaces/interface[name='%s']` | `/ietf-interfaces:interfaces/interface/name` |
+| `/ietf-interfaces:interfaces/interface[name='eth0']/ietf-ip:ipv4/address[ip='%s']` | `/ietf-interfaces:interfaces/interface[name='eth0']/ietf-ip:ipv4/address/ip` |
+
+For leaf-list targets the extraction is simply `"."` (the data node's own value).
+
 #### Internal Steps
 
 1. **Split** the XPath on top-level `|` into individual branches
@@ -170,7 +197,7 @@ The first key is pinned (literal), the second is open (placeholder).
    order) and check the original XPath step for a matching predicate:
     - Predicate found with literal value -> emit `[key='value']` (pinned).
     - No predicate, or positional predicate `[N]` -> emit `[key='%s']` and
-      record an `ExtractionSpec`.
+      record an `ExtractionSpec` with the full absolute XPath to the key leaf.
 6. At a **leaf-list** target, emit `[.='%s']` or a literal `[.='value']`.
 
 #### Predicate Normalization
@@ -183,13 +210,13 @@ The first key is pinned (literal), the second is open (placeholder).
 | `[key="value"]`          | `[key='value']` (double-quote normalized to single)      |
 | `[N]` (positional)       | `[key='%s']` (treated as open — positional does not pin) |
 
-### Phase 3: Runtime Kafka Key Production
+### Phase 3: Runtime Message Key Production
 
-**Implementation:** [`src/phase3.rs`](src/phase3.rs) — `produce_kafka_key()`
+**Implementation:** [`src/phase3.rs`](src/phase3.rs) — `produce_message_key()`
 
 Given a parsed notification data tree and the Phase 2 derivation result, walk
 the data tree, match instances to branch templates, extract key leaf values,
-fill placeholders, and compose the final Kafka key.
+fill placeholders, and compose the final message key.
 
 #### Internal Steps
 
@@ -198,12 +225,14 @@ fill placeholders, and compose the final Kafka key.
    matches any branch template.
 3. On match, **fill the template**: for each `%s` placeholder, walk up from
    the data node to find the ancestor list matching the extraction spec, then
-   read the key leaf child's canonical value.
+   read the key leaf child's canonical value. (This is the optimized
+   `ancestor-or-self` tree walk — equivalent to evaluating the full extraction
+   XPath but reduced to O(d) complexity where d is the depth of the data tree.)
 4. **Collect** all filled templates into a list.
 5. **Deduplicate and sort** lexicographically.
-6. **Build the `KafkaKey` struct** with `node_name`, `subscription_id`, and
+6. **Build the `MessageKey` struct** with `node_name`, `subscription_id`, and
    the sorted `xpaths` array.
-7. **Serialize** to compact JSON via `serde_json::to_string`.
+7. **Serialize** to line-delimited format via `MessageKey::to_line_delimited()`.
 
 ### Supporting Utilities
 
@@ -221,13 +250,14 @@ fill placeholders, and compose the final Kafka key.
 **Implementation:** [`src/types.rs`](src/types.rs)
 
 - `TargetType` — enum: `Container`, `List`, `Leaf`, `LeafList`.
-- `ExtractionSpec` — describes one `%s` placeholder (key leaf name, owning
-  list module/name).
+- `ExtractionSpec` — describes one `%s` placeholder: the full absolute XPath
+  to the key leaf, plus the optimized fields (key leaf name, owning list
+  module/name) for O(d) ancestor tree walk.
 - `BranchTemplate` — template string + extractions + target type for one
   union branch.
 - `DerivationResult` — complete Phase 2 output (all branches).
-- `KafkaKey` — the serializable JSON key struct.
-- `KafkaKeyResult` — compact JSON string + structured `KafkaKey`.
+- `MessageKey` — the structured message key.
+- `MessageKeyResult` — line-delimited string + structured `MessageKey`.
 
 ## Special Case Handling
 
@@ -300,8 +330,8 @@ as the concrete XPath.
 
 A single notification may carry multiple instances (e.g. two interfaces
 changed). Phase 3 collects all matching instances, deduplicates them, and
-sorts them lexicographically in the `xpaths` array. This guarantees the same
-JSON key regardless of the order instances appear in the XML.
+sorts them lexicographically on the third line of the message key. This
+guarantees the same key regardless of the order instances appear in the XML.
 
 **Tested by:** `p3_02_multiple_instances_sorted`,
 `p3_08_nested_multiple_inner_instances`
@@ -309,7 +339,7 @@ JSON key regardless of the order instances appear in the XML.
 ### Cross-Device Key Isolation (Phase 3)
 
 Two devices with the same subscription and the same data tree produce
-different Kafka keys because `node_name` is part of the JSON structure.
+different message keys because `node_name` is the first line of the key.
 
 **Tested by:** `p3_06_same_data_different_nodes_produce_distinct_keys`
 
@@ -547,11 +577,11 @@ For example, Phase 2 for `/ietf-interfaces:interfaces/interface` produces:
 
 ```
 Template:    /ietf-interfaces:interfaces/interface[name='%s']
-Extraction:  ancestor-or-self::ietf-interfaces:interface/name
+Extraction:  /ietf-interfaces:interfaces/interface/name
 ```
 
-The extraction tells you the key leaf is `name` in the `interface` list.
-Translate that to an absolute XPath and pass it to `yanglint -E`:
+The extraction is a full absolute XPath to the key leaf. You can pass it
+directly to `yanglint -E`:
 
 ```bash
 yanglint -n -p assets/yang -t data \
@@ -570,8 +600,8 @@ extractions:
 
 ```
 Template:      /example-network:network-instances/network-instance[name='%s']/interface[id='%s']
-Extraction 0:  ancestor-or-self::example-network:network-instance/name
-Extraction 1:  ancestor-or-self::example-network:interface/id
+Extraction 0:  /example-network:network-instance/name
+Extraction 1:  /example-network:network-instance[name='%s']/interface/id
 ```
 
 Extract each key leaf independently with `-E`:
@@ -590,10 +620,8 @@ yanglint -n -p assets/yang -t data \
     assets/testdata/ni_single.xml
 ```
 
-The mapping from Phase 2 extraction XPaths to yanglint `-E` arguments is
-straightforward: replace the `ancestor-or-self::MODULE:LIST/KEY` form with
-the corresponding absolute path from root to the key leaf. The module prefix
-on the first segment matches what Phase 2 already uses in the key template.
+The Phase 2 extraction XPaths are already in the format that yanglint `-E`
+expects — full absolute paths from the root to the key leaf.
 
 ## Running the Test Suite
 
@@ -740,10 +768,10 @@ yang-push-key phase2 "/ietf-interfaces:interfaces/interface" \
 | `p2_24_deep_mixed_outer_pinned_inner_open`       | Composite pinned, inner open       | 1                   |
 | `p2_25_module_prefixed_predicate_key`            | `[ietf-interfaces:name=...]`       | 0 (prefix stripped) |
 
-### Phase 3 — Kafka Key Production (9 tests)
+### Phase 3 — Message Key Production (9 tests)
 
 Each test derives templates (Phase 2), parses notification XML data, calls
-`produce_kafka_key()`, and compares the output JSON to
+`produce_message_key()`, and compares the output to
 `assets/testdata/expected/<name>.key`.
 
 | Test                                                    | Scenario                                 | `xpaths` count         |
@@ -891,7 +919,7 @@ yang-push-key phase1 assets/testdata/p1_simple.xml \
 # Output: /ietf-interfaces:interfaces/ietf-interfaces:interface
 ```
 
-### Phase 2 — XPath to Key Template (JSON)
+### Phase 2 — XPath to Key Template
 
 ```bash
 # With individual modules:
@@ -923,15 +951,15 @@ Output (abbreviated):
       "key_template": "/ietf-interfaces:interfaces/interface[name='%s']/ietf-ip:ipv4/address[ip='%s']",
       "target_type": "list",
       "extractions": [
-        { "placeholder_index": 0, "key_leaf": "name",  "list_module": "ietf-interfaces", "list_name": "interface" },
-        { "placeholder_index": 1, "key_leaf": "ip",    "list_module": "ietf-ip",         "list_name": "address"   }
+        { "placeholder_index": 0, "extraction_xpath": "/ietf-interfaces:interfaces/interface/name", "key_leaf": "name",  "list_module": "ietf-interfaces", "list_name": "interface" },
+        { "placeholder_index": 1, "extraction_xpath": "/ietf-interfaces:interfaces/interface[name='%s']/ietf-ip:ipv4/address/ip", "key_leaf": "ip", "list_module": "ietf-ip", "list_name": "address" }
       ]
     }
   ]
 }
 ```
 
-### Phase 3 — Notification Data to Kafka Key (JSON)
+### Phase 3 — Notification Data to Message Key
 
 ```bash
 # With individual modules:
@@ -943,7 +971,7 @@ yang-push-key phase3 <DATA_FILE> --xpath <XPATH> --node-name <NAME> --sub-id <ID
     --yang-dir <DIR> --yang-library <FILE>
 ```
 
-### Pipeline — Full End-to-End (JSON)
+### Pipeline — Full End-to-End
 
 ```bash
 # With individual modules:
@@ -984,11 +1012,11 @@ yang-push-key-rs/
 +-- README.md
 +-- src/
 |   +-- lib.rs          # Crate root, module declarations, re-exports
-|   +-- types.rs        # Shared data structures (KafkaKey, DerivationResult, etc.)
+|   +-- types.rs        # Shared data structures (MessageKey, DerivationResult, etc.)
 |   +-- xpath.rs        # XPath parsing utilities + 9 unit tests
 |   +-- phase1.rs       # Phase 1: subtree filter normalization (quick-xml 0.39)
 |   +-- phase2.rs       # Phase 2: key template derivation
-|   +-- phase3.rs       # Phase 3: runtime Kafka key production (JSON output)
+|   +-- phase3.rs       # Phase 3: runtime message key production (line-delimited)
 |   +-- main.rs         # CLI (clap)
 +-- tests/
 |   +-- common.rs       # Test helpers (create_ctx, parse_data)
@@ -997,6 +1025,7 @@ yang-push-key-rs/
 |   +-- phase3.rs       # 9 Phase 3 integration tests
 |   +-- pipeline.rs     # 4 end-to-end pipeline tests
 +-- assets/
+    +-- docs/           # IETF draft XML documents
     +-- yang/           # 7 YANG schema files
     |   +-- yang-library-interfaces.xml  # Example YANG Library (RFC 8525)
     +-- testdata/       # 31 XML input fixtures
@@ -1018,7 +1047,7 @@ yang-push-key-rs/
 ## Library Usage
 
 ```rust
-use yang_push_key::{normalize_subtree, derive_templates, produce_kafka_key};
+use yang_push_key::{normalize_subtree, derive_templates, produce_message_key};
 
 // Phase 1 (optional — only needed for subtree filter subscriptions)
 let xpath = normalize_subtree( & ctx, subtree_xml) ?;
@@ -1027,11 +1056,11 @@ let xpath = normalize_subtree( & ctx, subtree_xml) ?;
 let derivation = derive_templates( & ctx, & xpath) ?;
 
 // Phase 3 (per notification, at runtime)
-let result = produce_kafka_key( & derivation, & data_tree, "router-01", "1042") ?;
+let result = produce_message_key( & derivation, & data_tree, "router-01", "1042") ?;
 
-// result.kafka_key  — compact JSON string for Kafka ProducerRecord key
-// result.key        — structured KafkaKey for programmatic access
-println!("{}", result.kafka_key);
+// result.message_key  — line-delimited string for message broker record key
+// result.key          — structured MessageKey for programmatic access
+println!("{}", result.message_key);
 println!("{}", result.key.node_name);         // "router-01"
 println!("{}", result.key.subscription_id);   // "1042"
 for xpath in & result.key.xpaths {

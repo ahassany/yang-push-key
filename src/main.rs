@@ -301,25 +301,18 @@ fn build_context(args: &YangArgs) -> Result<Context, String> {
             Some(f) => f,
             None => infer_library_format(lib_path)?,
         };
-        Context::new_from_yang_library_file(
-            lib_path,
-            fmt,
-            &args.yang_dir,
-            ContextFlags::empty(),
-        )
-        .map_err(|e| {
-            format!(
-                "failed to create context from YANG library '{}': {}",
-                lib_path.display(),
-                e
-            )
-        })?
+        Context::new_from_yang_library_file(lib_path, fmt, &args.yang_dir, ContextFlags::empty())
+            .map_err(|e| {
+                format!(
+                    "failed to create context from YANG library '{}': {}",
+                    lib_path.display(),
+                    e
+                )
+            })?
     } else {
         // --- Module-list mode (original) ---
         if args.modules.is_empty() {
-            return Err(
-                "either --yang-library or at least one -m/--module is required".into(),
-            );
+            return Err("either --yang-library or at least one -m/--module is required".into());
         }
         let mut ctx = Context::new(ContextFlags::NO_YANGLIBRARY)
             .map_err(|e| format!("failed to create libyang context: {}", e))?;

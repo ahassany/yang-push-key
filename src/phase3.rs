@@ -75,8 +75,9 @@ fn fill_template(dnode: &DataNodeRef, branch: &BranchTemplate) -> Option<String>
             // Leaf-list: the data node's own value
             dnode.value_canonical()
         } else {
-            // Optimized ancestor tree walk (equivalent to evaluating
-            // the extraction XPath "ancestor-or-self::MOD:LIST/KEY")
+            // Optimized ancestor tree walk — equivalent to evaluating
+            // the full extraction XPath but reduced to O(d) complexity
+            // by walking up from the matched data node.
             let list_node = dnode.inclusive_ancestors().find(|a| {
                 a.schema().kind() == SchemaNodeKind::List && a.schema().name() == ext.list_name
             })?;

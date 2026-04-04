@@ -36,10 +36,10 @@
 //! let derivation = phase2::derive_templates(&ctx, &xpath)?;
 //!
 //! // Phase 3 (per notification)
-//! let result = phase3::produce_kafka_key(
+//! let result = phase3::produce_message_key(
 //!     &derivation, &data_tree, "router-01", "1042",
 //! )?;
-//! println!("{}", result.kafka_key);
+//! println!("{}", result.message_key);
 //! ```
 //!
 //! [RFC 8641]: https://www.rfc-editor.org/rfc/rfc8641

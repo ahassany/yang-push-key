@@ -24,8 +24,8 @@
 mod common;
 
 use common::create_ctx;
-use yang_push_key::derive_templates;
 use yang_push_key::types::TargetType;
+use yang_push_key::{BranchTemplate, DerivationResult, ExtractionSpec, derive_templates};
 
 // =====================================================================
 //  Bare XPaths (no predicates)
@@ -36,14 +36,26 @@ fn p2_01_simple_list_single_key() {
     let ctx = create_ctx(&[("ietf-interfaces", &[])]);
     let xpath = "/ietf-interfaces:interfaces/interface";
     let expected_template = include_str!("../assets/testdata/expected/p2_simple_list.template");
+    let expected = DerivationResult {
+        subscription_xpath: "/ietf-interfaces:interfaces/interface".to_string(),
+        branches: vec![BranchTemplate {
+            branch_index: 0,
+            branch_xpath: xpath.to_string(),
+            key_template: expected_template.to_string(),
+            extractions: vec![ExtractionSpec {
+                extraction_xpath: "/ietf-interfaces:interfaces/interface/name".to_string(),
+                key_leaf_name: "name".to_string(),
+                list_module: "ietf-interfaces".to_string(),
+                list_name: "interface".to_string(),
+            }],
+
+            target_type: TargetType::List,
+        }],
+    };
 
     let result = derive_templates(&ctx, xpath).expect("derivation failed");
 
-    assert_eq!(result.branches.len(), 1);
-    assert_eq!(result.branches[0].key_template, expected_template);
-    assert_eq!(result.branches[0].target_type, TargetType::List);
-    assert_eq!(result.branches[0].extractions.len(), 1);
-    assert_eq!(result.branches[0].extractions[0].key_leaf_name, "name");
+    assert_eq!(result, expected);
 }
 
 #[test]
@@ -51,10 +63,25 @@ fn p2_02_redundant_prefix_normalized() {
     let ctx = create_ctx(&[("ietf-interfaces", &[])]);
     let xpath = "/ietf-interfaces:interfaces/ietf-interfaces:interface";
     let expected_template = include_str!("../assets/testdata/expected/p2_simple_list.template");
+    let expected = DerivationResult {
+        subscription_xpath: "/ietf-interfaces:interfaces/ietf-interfaces:interface".to_string(),
+        branches: vec![BranchTemplate {
+            branch_index: 0,
+            branch_xpath: xpath.to_string(),
+            key_template: expected_template.to_string(),
+            extractions: vec![ExtractionSpec {
+                extraction_xpath: "/ietf-interfaces:interfaces/interface/name".to_string(),
+                key_leaf_name: "name".to_string(),
+                list_module: "ietf-interfaces".to_string(),
+                list_name: "interface".to_string(),
+            }],
 
+            target_type: TargetType::List,
+        }],
+    };
     let result = derive_templates(&ctx, xpath).expect("derivation failed");
 
-    assert_eq!(result.branches[0].key_template, expected_template);
+    assert_eq!(result, expected);
 }
 
 #[test]

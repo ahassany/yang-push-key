@@ -99,9 +99,8 @@ fn find_matching_step<'a>(
 /// Algorithm:
 /// 1. Collect the ancestor chain from target → root (skipping choice/case).
 /// 2. Reverse to root → target order.
-/// 3. For each node, emit a path segment with minimal prefix.
-/// 4. At each LIST node, check the original xpath step for pinned keys
-///    and emit literal or `%s` predicates accordingly.
+/// 3. For each node, emit a path segment with a minimal prefix.
+/// 4. At each LIST node, check the original xpath step for pinned keys and emit literal or `%s` predicates accordingly.
 /// 5. At a LEAF_LIST target, emit `[.='%s']` or a literal.
 fn build_template(
     target: &SchemaNode,
@@ -159,9 +158,7 @@ fn build_template(
                 } else {
                     template.push_str(&format!("[{}='%s']", key_name));
                     extractions.push(ExtractionSpec::for_list_key(
-                        &key_name,
-                        &mod_name,
-                        &name,
+                        &key_name, &mod_name, &name, &template,
                     ));
                 }
             }
@@ -179,10 +176,7 @@ fn build_template(
                 template.push_str(&format!("[.={}]", escape_xpath_value(&val)));
             } else {
                 template.push_str("[.='%s']");
-                extractions.push(ExtractionSpec::for_leaf_list_value(
-                    &mod_name,
-                    &name,
-                ));
+                extractions.push(ExtractionSpec::for_leaf_list_value(&mod_name, &name));
             }
         }
     }

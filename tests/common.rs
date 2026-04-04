@@ -28,8 +28,8 @@ pub type ModuleSpec = (&'static str, &'static [&'static str]);
 /// Module content is resolved from the embedded static strings
 /// compiled into the test binary.
 pub fn create_ctx(modules: &[ModuleSpec]) -> Context {
-    let mut ctx =
-        Context::new(ContextFlags::NO_YANGLIBRARY | ContextFlags::REF_IMPLEMENTED).expect("Failed to create libyang context");
+    let mut ctx = Context::new(ContextFlags::NO_YANGLIBRARY | ContextFlags::REF_IMPLEMENTED)
+        .expect("Failed to create libyang context");
     ctx.set_searchdir("assets/yang")
         .expect("Failed to set search directory for yang library");
 
