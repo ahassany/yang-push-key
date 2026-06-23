@@ -14,11 +14,9 @@ notifications (RFC 8641).  Three phases: (1) subtree filter → XPath,
 """
 
 [dependencies]
-yang4 = { version = "0.1.0", features = ["bundled"] }
+yang5 = { version = "0.2.0", features = ["bundled"] }
 quick-xml = "0.39"
 clap = { version = "4.6", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
-[dev-dependencies]
-yang4 = { version = "0.1.0", features = ["bundled"] }

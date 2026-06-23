@@ -36,7 +36,7 @@ use std::collections::BTreeSet;
 
 use quick_xml::Reader;
 use quick_xml::events::Event;
-use yang4::context::Context;
+use yang5::context::Context;
 
 use crate::xpath::escape_xpath_value;
 

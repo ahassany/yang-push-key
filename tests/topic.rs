@@ -24,7 +24,7 @@
 mod common;
 
 use common::create_ctx;
-use yang_push_key::{derive_templates, derive_topic_names, TopicConfig};
+use yang_push_key::{TopicConfig, derive_templates, derive_topic_names};
 
 // =====================================================================
 //  Simple list and leaf targets
@@ -37,7 +37,8 @@ fn topic_simple_list() {
     let expected = include_str!("../assets/testdata/expected/topic_simple_list.topic");
 
     let derivation = derive_templates(&ctx, xpath).expect("derivation failed");
-    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default()).expect("topic derivation failed");
+    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default())
+        .expect("topic derivation failed");
 
     assert_eq!(result.topic_names.len(), 1);
     assert_eq!(result.topic_names[0], expected);
@@ -50,7 +51,8 @@ fn topic_leaf_in_list() {
     let expected = include_str!("../assets/testdata/expected/topic_leaf_in_list.topic");
 
     let derivation = derive_templates(&ctx, xpath).expect("derivation failed");
-    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default()).expect("topic derivation failed");
+    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default())
+        .expect("topic derivation failed");
 
     assert_eq!(result.topic_names[0], expected);
 }
@@ -62,7 +64,8 @@ fn topic_oper_status() {
     let expected = include_str!("../assets/testdata/expected/topic_oper_status.topic");
 
     let derivation = derive_templates(&ctx, xpath).expect("derivation failed");
-    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default()).expect("topic derivation failed");
+    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default())
+        .expect("topic derivation failed");
 
     assert_eq!(result.topic_names[0], expected);
 }
@@ -78,7 +81,8 @@ fn topic_container() {
     let expected = include_str!("../assets/testdata/expected/topic_container.topic");
 
     let derivation = derive_templates(&ctx, xpath).expect("derivation failed");
-    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default()).expect("topic derivation failed");
+    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default())
+        .expect("topic derivation failed");
 
     assert_eq!(result.topic_names[0], expected);
 }
@@ -90,7 +94,8 @@ fn topic_leaf_list() {
     let expected = include_str!("../assets/testdata/expected/topic_leaf_list.topic");
 
     let derivation = derive_templates(&ctx, xpath).expect("derivation failed");
-    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default()).expect("topic derivation failed");
+    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default())
+        .expect("topic derivation failed");
 
     assert_eq!(result.topic_names[0], expected);
 }
@@ -102,7 +107,8 @@ fn topic_dns_server() {
     let expected = include_str!("../assets/testdata/expected/topic_dns_server.topic");
 
     let derivation = derive_templates(&ctx, xpath).expect("derivation failed");
-    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default()).expect("topic derivation failed");
+    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default())
+        .expect("topic derivation failed");
 
     assert_eq!(result.topic_names[0], expected);
 }
@@ -118,7 +124,8 @@ fn topic_nested_list() {
     let expected = include_str!("../assets/testdata/expected/topic_nested_list.topic");
 
     let derivation = derive_templates(&ctx, xpath).expect("derivation failed");
-    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default()).expect("topic derivation failed");
+    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default())
+        .expect("topic derivation failed");
 
     assert_eq!(result.topic_names[0], expected);
 }
@@ -130,7 +137,8 @@ fn topic_nested_status() {
     let expected = include_str!("../assets/testdata/expected/topic_nested_status.topic");
 
     let derivation = derive_templates(&ctx, xpath).expect("derivation failed");
-    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default()).expect("topic derivation failed");
+    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default())
+        .expect("topic derivation failed");
 
     assert_eq!(result.topic_names[0], expected);
 }
@@ -146,7 +154,8 @@ fn topic_composite_key() {
     let expected = include_str!("../assets/testdata/expected/topic_composite.topic");
 
     let derivation = derive_templates(&ctx, xpath).expect("derivation failed");
-    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default()).expect("topic derivation failed");
+    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default())
+        .expect("topic derivation failed");
 
     assert_eq!(result.topic_names[0], expected);
 }
@@ -158,7 +167,8 @@ fn topic_three_level_nesting() {
     let expected = include_str!("../assets/testdata/expected/topic_deep.topic");
 
     let derivation = derive_templates(&ctx, xpath).expect("derivation failed");
-    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default()).expect("topic derivation failed");
+    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default())
+        .expect("topic derivation failed");
 
     assert_eq!(result.topic_names[0], expected);
 }
@@ -170,7 +180,8 @@ fn topic_acl_entry() {
     let expected = include_str!("../assets/testdata/expected/topic_acl_entry.topic");
 
     let derivation = derive_templates(&ctx, xpath).expect("derivation failed");
-    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default()).expect("topic derivation failed");
+    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default())
+        .expect("topic derivation failed");
 
     assert_eq!(result.topic_names[0], expected);
 }
@@ -182,7 +193,8 @@ fn topic_acl_leaf() {
     let expected = include_str!("../assets/testdata/expected/topic_acl_action.topic");
 
     let derivation = derive_templates(&ctx, xpath).expect("derivation failed");
-    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default()).expect("topic derivation failed");
+    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default())
+        .expect("topic derivation failed");
 
     assert_eq!(result.topic_names[0], expected);
 }
@@ -194,7 +206,8 @@ fn topic_vlan() {
     let expected = include_str!("../assets/testdata/expected/topic_vlan.topic");
 
     let derivation = derive_templates(&ctx, xpath).expect("derivation failed");
-    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default()).expect("topic derivation failed");
+    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default())
+        .expect("topic derivation failed");
 
     assert_eq!(result.topic_names[0], expected);
 }
@@ -213,7 +226,8 @@ fn topic_concrete_single_key_matches_bare() {
     let d_bare = derive_templates(&ctx, bare).expect("derivation failed");
     let d_concrete = derive_templates(&ctx, concrete).expect("derivation failed");
     let t_bare = derive_topic_names(&ctx, &d_bare, &TopicConfig::default()).expect("topic failed");
-    let t_concrete = derive_topic_names(&ctx, &d_concrete, &TopicConfig::default()).expect("topic failed");
+    let t_concrete =
+        derive_topic_names(&ctx, &d_concrete, &TopicConfig::default()).expect("topic failed");
 
     assert_eq!(t_bare.topic_names[0], expected);
     assert_eq!(t_concrete.topic_names[0], expected);
@@ -230,7 +244,8 @@ fn topic_concrete_leaf_matches_bare() {
     let d_bare = derive_templates(&ctx, bare).expect("derivation failed");
     let d_concrete = derive_templates(&ctx, concrete).expect("derivation failed");
     let t_bare = derive_topic_names(&ctx, &d_bare, &TopicConfig::default()).expect("topic failed");
-    let t_concrete = derive_topic_names(&ctx, &d_concrete, &TopicConfig::default()).expect("topic failed");
+    let t_concrete =
+        derive_topic_names(&ctx, &d_concrete, &TopicConfig::default()).expect("topic failed");
 
     assert_eq!(t_bare.topic_names[0], expected);
     assert_eq!(t_concrete.topic_names[0], expected);
@@ -246,7 +261,8 @@ fn topic_union_two_branches() {
     let xpath = "/ietf-interfaces:interfaces/interface | /example-vlans:vlans/vlan";
 
     let derivation = derive_templates(&ctx, xpath).expect("derivation failed");
-    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default()).expect("topic derivation failed");
+    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default())
+        .expect("topic derivation failed");
 
     assert_eq!(result.topic_names.len(), 2);
     assert_eq!(result.topic_names[0], "if-interfaces-interface");
@@ -261,7 +277,8 @@ fn topic_union_three_mixed() {
                  | /ietf-system:system/dns-resolver/search";
 
     let derivation = derive_templates(&ctx, xpath).expect("derivation failed");
-    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default()).expect("topic derivation failed");
+    let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default())
+        .expect("topic derivation failed");
 
     assert_eq!(result.topic_names.len(), 3);
     assert_eq!(result.topic_names[0], "if-interfaces-interface");
@@ -294,11 +311,13 @@ fn topic_names_contain_only_valid_kafka_chars() {
 
     for xpath in &xpaths {
         let derivation = derive_templates(&ctx, xpath).expect("derivation failed");
-        let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default()).expect("topic derivation failed");
+        let result = derive_topic_names(&ctx, &derivation, &TopicConfig::default())
+            .expect("topic derivation failed");
 
         for name in &result.topic_names {
             assert!(
-                name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.'),
+                name.chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.'),
                 "Topic '{}' contains invalid character (from xpath: {})",
                 name,
                 xpath,
@@ -345,14 +364,10 @@ fn topic_with_empty_prefix_same_as_no_prefix() {
     let xpath = "/ietf-interfaces:interfaces/interface";
 
     let derivation = derive_templates(&ctx, xpath).expect("derivation failed");
-    let with_empty = derive_topic_names(
-        &ctx, &derivation,
-        &TopicConfig::new().with_prefix(""),
-    ).expect("topic derivation failed");
-    let without = derive_topic_names(
-        &ctx, &derivation,
-        &TopicConfig::default(),
-    ).expect("topic derivation failed");
+    let with_empty = derive_topic_names(&ctx, &derivation, &TopicConfig::new().with_prefix(""))
+        .expect("topic derivation failed");
+    let without = derive_topic_names(&ctx, &derivation, &TopicConfig::default())
+        .expect("topic derivation failed");
 
     assert_eq!(with_empty.topic_names, without.topic_names);
 }
@@ -395,9 +410,7 @@ fn topic_custom_max_length() {
 fn topic_prefix_plus_max_length_interaction() {
     let ctx = create_ctx(&[("ietf-interfaces", &[])]);
     let xpath = "/ietf-interfaces:interfaces/interface/oper-status";
-    let config = TopicConfig::new()
-        .with_prefix("ops")
-        .with_max_length(40);
+    let config = TopicConfig::new().with_prefix("ops").with_max_length(40);
 
     let derivation = derive_templates(&ctx, xpath).expect("derivation failed");
     let result = derive_topic_names(&ctx, &derivation, &config).expect("topic derivation failed");
@@ -435,6 +448,10 @@ fn topic_within_default_max_not_truncated() {
 
     // "if-interfaces-interface-mtu" = 27 chars, well within 255
     assert_eq!(result.topic_names[0], "if-interfaces-interface-ip-ipv4-mtu");
-    assert!(!result.topic_names[0].chars().any(|c| c.is_ascii_hexdigit() && c.is_ascii_lowercase()) 
-        || result.topic_names[0].contains("interface")); // no hash appended
+    assert!(
+        !result.topic_names[0]
+            .chars()
+            .any(|c| c.is_ascii_hexdigit() && c.is_ascii_lowercase())
+            || result.topic_names[0].contains("interface")
+    ); // no hash appended
 }

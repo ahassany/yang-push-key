@@ -36,8 +36,8 @@
 //! | `[key="value"]` | `[key='value']` (normalized) |
 //! | `[N]` (positional) | `[key='%s']` (treated as open) |
 
-use yang4::context::Context;
-use yang4::schema::{SchemaNode, SchemaNodeKind};
+use yang5::context::Context;
+use yang5::schema::{SchemaNode, SchemaNodeKind};
 
 use crate::types::*;
 use crate::xpath::{XPathStep, escape_xpath_value, parse_xpath_steps, split_union};

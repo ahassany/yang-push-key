@@ -25,7 +25,7 @@
 //! 255), it is truncated at a `-` boundary and an FNV-1a hash suffix
 //! is appended for uniqueness.
 
-use yang4::context::Context;
+use yang5::context::Context;
 
 use crate::types::DerivationResult;
 use crate::xpath::strip_predicates;
@@ -154,10 +154,7 @@ pub fn schema_path_to_topic(
     schema_path: &str,
     config: &TopicConfig,
 ) -> Result<String, String> {
-    let segments: Vec<&str> = schema_path
-        .split('/')
-        .filter(|s| !s.is_empty())
-        .collect();
+    let segments: Vec<&str> = schema_path.split('/').filter(|s| !s.is_empty()).collect();
 
     let mut parts: Vec<String> = Vec::with_capacity(segments.len() + 1);
 

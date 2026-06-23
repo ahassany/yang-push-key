@@ -41,10 +41,13 @@ use std::process;
 
 use clap::{Parser, Subcommand};
 use serde::Serialize;
-use yang4::context::{Context, ContextFlags};
+use yang5::context::{Context, ContextFlags};
 
 use yang_push_key::types::TargetType;
-use yang_push_key::{DerivationResult, TopicConfig, derive_templates, derive_topic_names, normalize_subtree, produce_message_key};
+use yang_push_key::{
+    DerivationResult, TopicConfig, derive_templates, derive_topic_names, normalize_subtree,
+    produce_message_key,
+};
 
 // =====================================================================
 //  CLI argument definitions
@@ -182,7 +185,7 @@ struct YangArgs {
     /// (.xml → XML, .json → JSON).  Use this flag when the extension
     /// is ambiguous.
     #[arg(long, value_name = "FORMAT", value_parser = parse_data_format)]
-    yang_library_format: Option<yang4::data::DataFormat>,
+    yang_library_format: Option<yang5::data::DataFormat>,
 }
 
 // =====================================================================
@@ -255,10 +258,10 @@ fn derivation_to_json(d: &DerivationResult) -> Phase2Output {
 // =====================================================================
 
 /// Parse a data-format string ("xml" or "json") for clap.
-fn parse_data_format(s: &str) -> Result<yang4::data::DataFormat, String> {
+fn parse_data_format(s: &str) -> Result<yang5::data::DataFormat, String> {
     match s.to_ascii_lowercase().as_str() {
-        "xml" => Ok(yang4::data::DataFormat::XML),
-        "json" => Ok(yang4::data::DataFormat::JSON),
+        "xml" => Ok(yang5::data::DataFormat::XML),
+        "json" => Ok(yang5::data::DataFormat::JSON),
         other => Err(format!(
             "unsupported YANG library format '{}' (expected 'xml' or 'json')",
             other
@@ -267,15 +270,15 @@ fn parse_data_format(s: &str) -> Result<yang4::data::DataFormat, String> {
 }
 
 /// Infer the [`DataFormat`] from a file extension.
-fn infer_library_format(path: &std::path::Path) -> Result<yang4::data::DataFormat, String> {
+fn infer_library_format(path: &std::path::Path) -> Result<yang5::data::DataFormat, String> {
     match path
         .extension()
         .and_then(|e| e.to_str())
         .map(|e| e.to_ascii_lowercase())
         .as_deref()
     {
-        Some("xml") => Ok(yang4::data::DataFormat::XML),
-        Some("json") => Ok(yang4::data::DataFormat::JSON),
+        Some("xml") => Ok(yang5::data::DataFormat::XML),
+        Some("json") => Ok(yang5::data::DataFormat::JSON),
         _ => Err(format!(
             "cannot infer YANG library format from '{}'; \
              use --yang-library-format xml|json",
@@ -356,8 +359,8 @@ fn build_context(args: &YangArgs) -> Result<Context, String> {
 }
 
 /// Parse XML data into a libyang data tree (null-terminated for C FFI).
-fn parse_data_tree<'a>(ctx: &'a Context, xml: &str) -> Result<yang4::data::DataTree<'a>, String> {
-    use yang4::data::{DataFormat, DataParserFlags, DataTree, DataValidationFlags};
+fn parse_data_tree<'a>(ctx: &'a Context, xml: &str) -> Result<yang5::data::DataTree<'a>, String> {
+    use yang5::data::{DataFormat, DataParserFlags, DataTree, DataValidationFlags};
 
     let mut data = xml.trim().as_bytes().to_vec();
     data.push(0);
