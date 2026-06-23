@@ -15,8 +15,8 @@
 
 //! Shared test helpers for integration tests.
 
-use yang4::context::{Context, ContextFlags};
-use yang4::data::{DataFormat, DataParserFlags, DataTree, DataValidationFlags};
+use yang5::context::{Context, ContextFlags};
+use yang5::data::{DataFormat, DataParserFlags, DataTree, DataValidationFlags};
 
 /// Shorthand: `("module-name", &["feature", ...])`.
 ///

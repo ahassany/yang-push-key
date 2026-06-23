@@ -41,8 +41,8 @@
 
 use std::collections::BTreeSet;
 
-use yang4::data::{DataNodeRef, DataTree};
-use yang4::schema::{SchemaNodeKind, SchemaPathFormat};
+use yang5::data::{DataNodeRef, DataTree};
+use yang5::schema::{SchemaNodeKind, SchemaPathFormat};
 
 use crate::types::*;
 use crate::xpath::strip_predicates;
@@ -53,7 +53,7 @@ use crate::xpath::strip_predicates;
 
 /// Check whether the key template (with predicates stripped) matches
 /// the data node's schema path.
-fn template_matches_schema(template: &str, snode: &yang4::schema::SchemaNode) -> bool {
+fn template_matches_schema(template: &str, snode: &yang5::schema::SchemaNode) -> bool {
     let schema_path = snode.path(SchemaPathFormat::DATA);
     strip_predicates(template) == schema_path
 }
