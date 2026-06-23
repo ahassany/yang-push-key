@@ -361,12 +361,9 @@ fn build_context(args: &YangArgs) -> Result<Context, String> {
 /// Parse XML data into a libyang data tree (null-terminated for C FFI).
 fn parse_data_tree<'a>(ctx: &'a Context, xml: &str) -> Result<yang5::data::DataTree<'a>, String> {
     use yang5::data::{DataFormat, DataParserFlags, DataTree, DataValidationFlags};
-
-    let mut data = xml.trim().as_bytes().to_vec();
-    data.push(0);
     DataTree::parse_string(
         ctx,
-        &data,
+        &xml,
         DataFormat::XML,
         DataParserFlags::NO_VALIDATION,
         DataValidationFlags::empty(),
